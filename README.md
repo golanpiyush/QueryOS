@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/queryos.ico" alt="QueryOS Logo" width="128" height="128">
+</p>
+
 # QueryOS - AI Desktop Search Assistant 
 
 [![GitHub Stars](https://img.shields.io/github/stars/golanpiyush/QueryOS?style=for-the-badge&logo=github)](https://github.com/golanpiyush/QueryOS/stargazers)

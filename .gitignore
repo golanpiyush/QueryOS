@@ -3,3 +3,6 @@
 
 # Ignore v2.txt
 v2.txt
+
+# Builds
+.build

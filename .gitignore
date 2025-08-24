@@ -1,0 +1,5 @@
+# Ignore environment files
+.env
+
+# Ignore v2.txt
+v2.txt

@@ -1,0 +1,34 @@
+# QueryOS - AI Desktop Search Assistant
+# Requirements for version 1.0.0
+
+# Core AI and API dependencies
+openai>=1.0.0
+requests>=2.25.0
+
+# Voice Recognition and Text-to-Speech
+speechrecognition>=3.10.0
+pyttsx3>=2.90
+pyaudio>=0.2.11
+
+# File system and path utilities
+pathlib2>=2.3.6; python_version < "3.4"
+
+# JSON and data processing
+jsonschema>=4.0.0
+
+# Windows-specific utilities
+pywin32>=305; sys_platform == "win32"
+
+# Development and build dependencies (optional)
+pyinstaller>=5.0.0
+pytest>=7.0.0
+black>=22.0.0
+flake8>=4.0.0
+
+# Additional utilities
+colorama>=0.4.4
+tqdm>=4.64.0
+
+# Security and HTTP
+urllib3>=1.26.0
+certifi>=2022.0.0

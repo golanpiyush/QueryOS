@@ -17,13 +17,48 @@ AI_MODEL = os.getenv("AI_MODEL", "nousresearch/deephermes-3-llama-3-8b-preview:f
 
 # File type associations
 FILE_TYPES = {
-    'code': ['.py', '.js', '.html', '.css', '.java', '.cpp', '.c', '.h', '.php', '.rb', '.go', '.rs'],
-    'documents': ['.txt', '.pdf', '.docx', '.doc', '.rtf', '.odt'],
-    'data': ['.xlsx', '.xls', '.csv', '.json', '.xml', '.sql'],
-    'images': ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.svg', '.ico'],
-    'media': ['.mp4', '.avi', '.mkv', '.mp3', '.wav', '.flac'],
-    'archives': ['.zip', '.rar', '.7z', '.tar', '.gz']
+    'code': [
+        '.py', '.pyw', '.ipynb',
+        '.js', '.ts', '.jsx', '.tsx',
+        '.html', '.htm', '.css', '.scss', '.sass', '.less',
+        '.java', '.class', '.jar',
+        '.cpp', '.cc', '.cxx', '.c', '.h', '.hpp',
+        '.php', '.rb', '.go', '.rs', '.swift', '.kt', '.kts',
+        '.cs', '.vb', '.pl', '.sh', '.bat', '.ps1', '.r', '.m', '.scala',
+        '.sql'
+    ],
+    'documents': [
+        '.txt', '.pdf',
+        '.docx', '.doc', '.rtf', '.odt',
+        '.ppt', '.pptx', '.odp',
+        '.md', '.tex'
+    ],
+    'data': [
+        '.xlsx', '.xls', '.csv', '.tsv',
+        '.json', '.xml', '.yaml', '.yml',
+        '.sql', '.db', '.sqlite', '.parquet'
+    ],
+    'images': [
+        '.jpg', '.jpeg', '.png', '.gif', '.bmp',
+        '.svg', '.ico', '.tif', '.tiff', '.webp', '.heic'
+    ],
+    'media': [
+        # video
+        '.mp4', '.avi', '.mkv', '.mov', '.wmv', '.flv', '.webm', '.mpeg', '.mpg',
+        # audio
+        '.mp3', '.wav', '.flac', '.aac', '.ogg', '.wma', '.m4a', '.opus'
+    ],
+    'archives': [
+        '.zip', '.rar', '.7z', '.tar', '.gz', '.bz2', '.xz', '.iso'
+    ],
+    'executables': [
+        '.exe', '.msi', '.apk', '.app', '.deb', '.rpm', '.dmg', '.bin'
+    ],
+    'configs': [
+        '.ini', '.cfg', '.conf', '.env', '.toml', '.properties'
+    ]
 }
+
 
 # Priority search paths
 PRIORITY_PATHS = [

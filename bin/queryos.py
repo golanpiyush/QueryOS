@@ -8,7 +8,7 @@ Usage: python bin/queryos.py
 import sys
 import os
 
-# Add parent directory to path for imports
+# Add parent directory to path for importsfind me parth suar
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from errors.error_handler import ErrorHandler
@@ -30,4 +30,5 @@ def main():
         ErrorHandler.handle_fatal_error(e)
 
 if __name__ == "__main__":
+    
     main()

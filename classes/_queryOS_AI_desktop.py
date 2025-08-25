@@ -44,15 +44,16 @@ class QueryOS_AI:
         # Display results
         if not self.ui.display_search_results(results):
             if self.voice_handler.is_available():
-                self.voice_handler.speak("No files found matching your criteria")
+                # self.voice_handler.speak("No files found matching your criteria")
+                pass
             return
         
         # Handle results based on count and user preferences
         self._handle_search_results(results, search_params)
         
         # Voice feedback
-        if self.voice_handler.is_available():
-            self.voice_handler.speak(f"Found {len(results)} files matching your search")
+        # if self.voice_handler.is_available():
+        #     self.voice_handler.speak(f"Found {len(results)} files matching your search")
     
     def _handle_search_results(self, results, search_params):
         """Handle search results based on count and parameters"""

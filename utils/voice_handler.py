@@ -1,171 +1,99 @@
 """
-Enhanced QueryOS Voice Recognition and Text-to-Speech Handler
-Uses multiple recognition engines for better accuracy without hardcoded terms
+Simplified QueryOS Voice Recognition and Text-to-Speech Handler
+Uses only speech_recognition and pyttsx3 for simplicity
 """
-from enum import Enum
 import time
 import threading
-import tempfile
-import os
-from typing import Optional, List
+from typing import Optional
 from config.settings import VOICE_TIMEOUT, VOICE_PHRASE_LIMIT, TTS_RATE, debug_print
 from errors.error_handler import ErrorHandler
 
-# Try to import multiple recognition libraries
-ENGINES_AVAILABLE = {}
-
-# Voice Engine Priority Configuration
-class VoiceEngine(Enum):
-    """Voice recognition engines in priority order"""
-    AZURE = "azure.cognitiveservices.speech"
-    WHISPER = "openai_whisper"
-    GOOGLE = "speech_recognition.google"
-    BING = "speech_recognition.bing"
-    SPHINX = "speech_recognition.sphinx"
-
-    
+# Try to import required libraries
 try:
     import speech_recognition as sr
-    ENGINES_AVAILABLE['speechrecognition'] = True
+    SPEECH_RECOGNITION_AVAILABLE = True
 except ImportError:
     sr = None
-    ENGINES_AVAILABLE['speechrecognition'] = False
-
-try:
-    import openai_whisper as whisper # pyright: ignore[reportMissingImports]
-    ENGINES_AVAILABLE['whisper'] = True
-except ImportError:
-    try:
-        import whisper
-        ENGINES_AVAILABLE['whisper'] = True
-    except ImportError:
-        whisper = None
-        ENGINES_AVAILABLE['whisper'] = False
-
-try:
-    import azure.cognitiveservices.speech as speechsdk
-    ENGINES_AVAILABLE['azure'] = True
-except ImportError:
-    speechsdk = None
-    ENGINES_AVAILABLE['azure'] = False
+    SPEECH_RECOGNITION_AVAILABLE = False
 
 try:
     import pyttsx3
-    ENGINES_AVAILABLE['tts'] = True
+    TTS_AVAILABLE = True
 except ImportError:
     pyttsx3 = None
-    ENGINES_AVAILABLE['tts'] = False
+    TTS_AVAILABLE = False
 
 class VoiceHandler:
-    """Enhanced voice handler with multiple recognition engines"""
+    """Simplified voice handler using only pyttsx3 and speech_recognition"""
     
     def __init__(self):
         self.recognizer = None
         self.microphone = None
         self.tts_engine = None
-        self.whisper_model = None
-        self.azure_recognizer = None
         self.available = False
         self._tts_lock = threading.Lock()
-        self.recognition_engines = []
         
-        self._initialize_engines()
+        self._initialize()
     
-    def _initialize_engines(self):
-        """Initialize all available recognition engines"""
-        engines_ready = []
+    def _initialize(self):
+        """Initialize speech recognition and TTS"""
+        success_count = 0
         
-        # Initialize SpeechRecognition (Google, Bing, etc.)
-        if ENGINES_AVAILABLE['speechrecognition']:
+        # Initialize Speech Recognition
+        if SPEECH_RECOGNITION_AVAILABLE:
             try:
                 self.recognizer = sr.Recognizer()
                 self.microphone = sr.Microphone()
-                self._configure_speechrecognition()
-                self.recognition_engines.extend(['google', 'bing', 'sphinx'])
-                engines_ready.append("SpeechRecognition")
+                self._configure_recognition()
+                success_count += 1
+                debug_print("✅ Speech Recognition initialized")
             except Exception as e:
-                debug_print(f"❌ SpeechRecognition init failed: {e}")
-        
-        # Initialize Whisper (OpenAI's model - very accurate)
-        if ENGINES_AVAILABLE['whisper']:
-            try:
-                debug_print("🔄 Loading Whisper model (this may take a moment)...")
-                self.whisper_model = whisper.load_model("base")
-                self.recognition_engines.append('whisper')
-                engines_ready.append("OpenAI Whisper")
-            except Exception as e:
-                debug_print(f"❌ Whisper init failed: {e}")
-        
-        # Initialize Azure Speech (if credentials available)
-        if ENGINES_AVAILABLE['azure']:
-            try:
-                # Check for Azure credentials in environment
-                speech_key = os.getenv('AZURE_SPEECH_KEY')
-                service_region = os.getenv('AZURE_SPEECH_REGION', 'eastus')
-                
-                if speech_key:
-                    speech_config = speechsdk.SpeechConfig(
-                        subscription=speech_key, 
-                        region=service_region
-                    )
-                    speech_config.speech_recognition_language = "en-US"
-                    
-                    audio_config = speechsdk.audio.AudioConfig(
-                        use_default_microphone=True
-                    )
-                    
-                    self.azure_recognizer = speechsdk.SpeechRecognizer(
-                        speech_config=speech_config,
-                        audio_config=audio_config
-                    )
-                    
-                    self.recognition_engines.append('azure')
-                    engines_ready.append("Azure Speech")
-                else:
-                    debug_print("💡 Azure Speech available but no credentials found")
-            except Exception as e:
-                debug_print(f"❌ Azure Speech init failed: {e}")
+                debug_print(f"❌ Speech Recognition init failed: {e}")
+        else:
+            debug_print("❌ speech_recognition library not available")
         
         # Initialize TTS
-        if ENGINES_AVAILABLE['tts']:
+        if TTS_AVAILABLE:
             try:
                 self.tts_engine = pyttsx3.init()
                 self._configure_tts()
-                engines_ready.append("TTS")
+                success_count += 1
+                debug_print("✅ Text-to-Speech initialized")
             except Exception as e:
                 debug_print(f"❌ TTS init failed: {e}")
+        else:
+            debug_print("❌ pyttsx3 library not available")
         
-        self.available = len(self.recognition_engines) > 0
+        self.available = (self.recognizer is not None)
         
         if self.available:
-            debug_print(f"✅ Voice engines ready: {', '.join(engines_ready)}")
-            debug_print(f"🎤 Recognition engines: {self.recognition_engines}")
+            debug_print("🎤 Voice system ready")
         else:
-            debug_print("❌ No voice recognition engines available")
+            debug_print("❌ Voice system not available")
             self._show_installation_help()
     
-    def _configure_speechrecognition(self):
-        """Configure SpeechRecognition settings"""
-        if not self.recognizer:
+    def _configure_recognition(self):
+        """Configure speech recognition settings"""
+        if not self.recognizer or not self.microphone:
             return
         
         try:
-            # Calibrate microphone
+            # Calibrate microphone for ambient noise
             debug_print("🎤 Calibrating microphone...")
             with self.microphone as source:
                 self.recognizer.adjust_for_ambient_noise(source, duration=1)
             
-            # Configure recognition parameters for better accuracy
-            self.recognizer.energy_threshold = 4000  # Higher threshold for cleaner audio
+            # Configure recognition parameters
+            self.recognizer.energy_threshold = 4000
             self.recognizer.dynamic_energy_threshold = True
             self.recognizer.pause_threshold = 0.8
             self.recognizer.phrase_threshold = 0.3
             self.recognizer.non_speaking_duration = 0.5
             
-            debug_print("✅ SpeechRecognition configured")
+            debug_print("✅ Microphone calibrated")
             
         except Exception as e:
-            debug_print(f"⚠️ SpeechRecognition config warning: {e}")
+            debug_print(f"⚠️ Microphone calibration warning: {e}")
     
     def _configure_tts(self):
         """Configure text-to-speech settings"""
@@ -173,10 +101,13 @@ class VoiceHandler:
             return
         
         try:
-            # Get and set voice
+            # Set speech rate
+            self.tts_engine.setProperty('rate', TTS_RATE)
+            self.tts_engine.setProperty('volume', 0.8)
+            
+            # Try to find and set English voice
             voices = self.tts_engine.getProperty('voices')
             if voices:
-                # Find best English voice
                 english_voice = None
                 for voice in voices:
                     if any(lang in voice.id.lower() for lang in ['en-us', 'en-gb', 'english']):
@@ -187,200 +118,88 @@ class VoiceHandler:
                     self.tts_engine.setProperty('voice', english_voice.id)
                     debug_print(f"🔊 Using voice: {english_voice.name}")
             
-            # Set speech rate
-            self.tts_engine.setProperty('rate', TTS_RATE)
-            self.tts_engine.setProperty('volume', 0.8)
-            
         except Exception as e:
-            debug_print(f"⚠️ TTS config warning: {e}")
+            debug_print(f"⚠️ TTS configuration warning: {e}")
     
     def listen_for_voice(self) -> Optional[str]:
-        """Listen for voice input using multiple engines for best results"""
+        """Listen for voice input and convert to text"""
         if not self.available:
             debug_print("❌ Voice recognition not available")
             return None
         
-        debug_print("🎤 Listening... (speak clearly)")
-        
-        # Try each recognition engine in order of preference
-        results = []
-        audio_data = None
-        
-        # Capture audio first
-        if self.recognizer and self.microphone:
+        try:
+            debug_print("🎤 Listening... (speak clearly)")
+            
+            # Listen for audio
+            with self.microphone as source:
+                audio = self.recognizer.listen(
+                    source,
+                    timeout=VOICE_TIMEOUT,
+                    phrase_time_limit=VOICE_PHRASE_LIMIT
+                )
+            
+            debug_print("🔄 Processing speech...")
+            
+            # Try to recognize speech using Google's free service
             try:
-                with self.microphone as source:
-                    audio_data = self.recognizer.listen(
-                        source,
-                        timeout=VOICE_TIMEOUT,
-                        phrase_time_limit=VOICE_PHRASE_LIMIT
-                    )
-                debug_print("🔄 Audio captured, processing...")
-            except Exception as e:
-                debug_print(f"❌ Audio capture failed: {e}")
+                text = self.recognizer.recognize_google(audio)
+                debug_print(f"📝 Recognized: '{text}'")
+                return text.strip()
+            
+            except sr.UnknownValueError:
+                debug_print("❌ Could not understand audio")
                 return None
-        
-        # Try Whisper first (most accurate for technical terms)
-        if 'whisper' in self.recognition_engines and audio_data:
-            result = self._try_whisper_recognition(audio_data)
-            if result:
-                results.append(('whisper', result))
-        
-        # Try Azure Speech
-        if 'azure' in self.recognition_engines:
-            result = self._try_azure_recognition()
-            if result:
-                results.append(('azure', result))
-        
-        # Try Google Speech
-        if 'google' in self.recognition_engines and audio_data:
-            result = self._try_google_recognition(audio_data)
-            if result:
-                results.append(('google', result))
-        
-        # Try Bing Speech
-        if 'bing' in self.recognition_engines and audio_data:
-            result = self._try_bing_recognition(audio_data)
-            if result:
-                results.append(('bing', result))
-        
-        # Try offline Sphinx as fallback
-        if 'sphinx' in self.recognition_engines and audio_data:
-            result = self._try_sphinx_recognition(audio_data)
-            if result:
-                results.append(('sphinx', result))
-        
-        # Return best result
-        if results:
-            # Prefer Whisper or Azure results, then Google, then others
-            engine_priority = ['whisper', 'azure', 'google', 'bing', 'sphinx']
             
-            for engine in engine_priority:
-                for result_engine, text in results:
-                    if result_engine == engine:
-                        debug_print(f"📝 Best result from {engine}: '{text}'")
-                        return text.strip()
-            
-            # If no priority match, return first result
-            engine, text = results[0]
-            debug_print(f"📝 Using result from {engine}: '{text}'")
-            return text.strip()
-        
-        debug_print("❌ No recognition results from any engine")
-        return None
-    
-    def _try_whisper_recognition(self, audio_data) -> Optional[str]:
-        """Try recognition with OpenAI Whisper"""
-        if not self.whisper_model:
-            return None
-        
-        try:
-            # Convert audio to temporary WAV file for Whisper
-            with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp_file:
-                tmp_file.write(audio_data.get_wav_data())
-                tmp_file_path = tmp_file.name
-            
-            try:
-                result = self.whisper_model.transcribe(tmp_file_path)
-                text = result["text"].strip()
-                if text:
-                    return text
-            finally:
-                os.unlink(tmp_file_path)  # Clean up temp file
+            except sr.RequestError as e:
+                debug_print(f"❌ Speech recognition service error: {e}")
                 
-        except Exception as e:
-            debug_print(f"⚠️ Whisper recognition failed: {e}")
+                # Try offline recognition as fallback
+                try:
+                    text = self.recognizer.recognize_sphinx(audio)
+                    debug_print(f"📝 Offline recognition: '{text}'")
+                    return text.strip()
+                except:
+                    debug_print("❌ Offline recognition also failed")
+                    return None
         
-        return None
-    
-    def _try_azure_recognition(self) -> Optional[str]:
-        """Try recognition with Azure Speech"""
-        if not self.azure_recognizer:
+        except sr.WaitTimeoutError:
+            debug_print("⏰ Listening timeout - no speech detected")
             return None
         
-        try:
-            result = self.azure_recognizer.recognize_once()
-            
-            if result.reason == speechsdk.ResultReason.RecognizedSpeech:
-                return result.text.strip()
-            elif result.reason == speechsdk.ResultReason.NoMatch:
-                return None
-            else:
-                debug_print(f"Azure recognition failed: {result.reason}")
-                
         except Exception as e:
-            debug_print(f"⚠️ Azure recognition failed: {e}")
-        
-        return None
-    
-    def _try_google_recognition(self, audio_data) -> Optional[str]:
-        """Try recognition with Google Speech"""
-        if not self.recognizer:
+            debug_print(f"❌ Voice recognition error: {e}")
+            ErrorHandler.log_error(e, "VoiceHandler.listen_for_voice")
             return None
-        
-        try:
-            return self.recognizer.recognize_google(audio_data)
-        except Exception as e:
-            debug_print(f"⚠️ Google recognition failed: {e}")
-        
-        return None
-    
-    def _try_bing_recognition(self, audio_data) -> Optional[str]:
-        """Try recognition with Bing Speech"""
-        if not self.recognizer:
-            return None
-        
-        try:
-            # Note: Bing requires API key
-            bing_key = os.getenv('BING_SPEECH_API_KEY')
-            if bing_key:
-                return self.recognizer.recognize_bing(audio_data, key=bing_key)
-        except Exception as e:
-            debug_print(f"⚠️ Bing recognition failed: {e}")
-        
-        return None
-    
-    def _try_sphinx_recognition(self, audio_data) -> Optional[str]:
-        """Try recognition with offline Sphinx"""
-        if not self.recognizer:
-            return None
-        
-        try:
-            return self.recognizer.recognize_sphinx(audio_data)
-        except Exception as e:
-            debug_print(f"⚠️ Sphinx recognition failed: {e}")
-        
-        return None
     
     def speak(self, text: str):
-        """Text-to-speech output (non-blocking)"""
+        """Convert text to speech (non-blocking)"""
         if not text or not text.strip():
+            return
+        
+        if not self.tts_engine:
+            debug_print("❌ TTS not available")
             return
         
         debug_print(f"🔊 Speaking: {text}")
         
-        if self.tts_engine:
-            # Run TTS in separate thread to avoid blocking
-            tts_thread = threading.Thread(target=self._speak_sync, args=(text,))
-            tts_thread.daemon = True
-            tts_thread.start()
+        # Run TTS in separate thread to avoid blocking
+        tts_thread = threading.Thread(target=self._speak_sync, args=(text,))
+        tts_thread.daemon = True
+        tts_thread.start()
     
     def _speak_sync(self, text: str):
-        """Synchronous TTS (for threading)"""
+        """Synchronous TTS implementation (for threading)"""
         try:
             with self._tts_lock:
                 self.tts_engine.say(text)
                 self.tts_engine.runAndWait()
         except Exception as e:
-            ErrorHandler.log_error(e, "EnhancedVoiceHandler._speak_sync")
+            debug_print(f"❌ TTS error: {e}")
+            ErrorHandler.log_error(e, "VoiceHandler._speak_sync")
     
     def is_available(self) -> bool:
-        """Check if voice features are available"""
+        """Check if voice recognition is available"""
         return self.available
-    
-    def get_available_engines(self) -> List[str]:
-        """Get list of available recognition engines"""
-        return self.recognition_engines.copy()
     
     def test_voice_system(self) -> bool:
         """Test the voice system"""
@@ -389,39 +208,39 @@ class VoiceHandler:
             return False
         
         debug_print("🧪 Testing voice system...")
-        debug_print(f"🎤 Available engines: {self.recognition_engines}")
         
         # Test TTS
         if self.tts_engine:
             self.speak("Voice system ready for testing")
+            time.sleep(1)  # Give TTS time to start
         
         # Test recognition
-        debug_print("🎤 Say something to test recognition...")
+        debug_print("🎤 Say something to test recognition (you have 5 seconds)...")
         result = self.listen_for_voice()
         
         if result:
-            debug_print(f"✅ Voice system working! Recognized: '{result}'")
+            debug_print(f"✅ Voice system working! You said: '{result}'")
+            self.speak(f"I heard you say: {result}")
             return True
         else:
             debug_print("⚠️ Voice recognition test failed")
+            self.speak("Voice recognition test failed")
             return False
     
     def _show_installation_help(self):
-        """Show help for installing voice recognition libraries"""
-        debug_print("\n💡 To enable better voice recognition, install:")
-        debug_print("   pip install openai-whisper  # Best accuracy")
-        debug_print("   pip install azure-cognitiveservices-speech  # Enterprise grade")
-        debug_print("   pip install speechrecognition pyttsx3 pyaudio  # Basic support")
-        debug_print("\n🔑 For Azure Speech, set environment variables:")
-        debug_print("   set AZURE_SPEECH_KEY=your_key")
-        debug_print("   set AZURE_SPEECH_REGION=your_region")
+        """Show installation instructions"""
+        debug_print("\n💡 To enable voice features, install:")
+        debug_print("   pip install speechrecognition")
+        debug_print("   pip install pyttsx3")
+        debug_print("   pip install pyaudio")
+        debug_print("\n🔧 If you get PyAudio errors on Windows:")
+        debug_print("   pip install pipwin")
+        debug_print("   pipwin install pyaudio")
     
     def cleanup(self):
         """Clean up voice resources"""
         try:
             if self.tts_engine:
                 self.tts_engine.stop()
-            if hasattr(self, 'whisper_model'):
-                del self.whisper_model
         except Exception as e:
             debug_print(f"⚠️ Cleanup warning: {e}")

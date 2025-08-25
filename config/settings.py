@@ -81,9 +81,9 @@ TTS_RATE = 180
 
 # UI Messages
 MESSAGES = {
-    'welcome': "🔍 QueryOS - AI Desktop Search Assistant initialized!",
-    'voice_enabled': "🎤 Voice recognition enabled",
-    'drives_ready': "📁 Ready to search across all drives",
+    'welcome': "🤖 QueryOS - (v1.0.0🚀)",
+    'voice_enabled': "🎤 Voice recognition disabled using text",
+    'drives_ready': "🪲 Ready to search across all drives",
     'voice_unavailable': "Voice features unavailable. Install: pip install speechrecognition pyttsx3 pyaudio"
 }
 
